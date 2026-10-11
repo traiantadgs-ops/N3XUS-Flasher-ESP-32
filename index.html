@@ -50,7 +50,10 @@ connectBtn.onclick = async () => {
     esploader = new ESPLoader({
       transport,
       baudrate: 460800,
-      terminal: { clean: () => {}, writeLine: (d) => log(d) }
+      terminal: { 
+        clean: () => {}, 
+        write: (d) => log(d), 
+        writeLine: (d) => log(d) }
     });
     log('Подключение к ESP32...', 'info');
     await esploader.main();
