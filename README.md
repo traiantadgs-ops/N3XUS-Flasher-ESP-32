@@ -4,7 +4,7 @@ Web flasher for N3XUS firmware.
 
 ## Flash
 
-https://traiantadgs-ops.github.io/N3XUS-Flasher-ESP32/flash.html
+https://traiantadgs-ops.github.io/N3XUS-Flasher-ESP32/
 
 ## Files
 
