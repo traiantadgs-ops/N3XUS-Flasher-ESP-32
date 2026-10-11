@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N3XUS Flasher</title>
+<style>
+  body{background:#0a0a0a;color:#fff;font-family:monospace;padding:20px;text-align:center;}
+  h1{color:#0f0;margin-bottom:30px;}
+  button{background:#0f0;color:#000;border:none;padding:15px 30px;font-size:18px;border-radius:8px;margin:10px;cursor:pointer;font-weight:bold;}
+  button:disabled{background:#333;color:#666;cursor:not-allowed;}
+  #log{background:#111;border:1px solid #0f0;padding:15px;margin-top:20px;text-align:left;height:300px;overflow-y:auto;font-size:12px;white-space:pre-wrap;}
+  .ok{color:#0f0;} .err{color:#f00;} .info{color:#0ff;}
+</style>
+</head>
+<body>
+<h1>N3XUS Flasher ESP-32</h1>
+<button id="connect">Connect</button>
+<button id="flash" disabled>Install</button>
+<div id="log">Готов. Подключи ESP32 и нажми Connect.</div>
+
+<script type="module">
+import { ESPLoader, Transport } from 'https://unpkg.com/esptool-js@0.4.5/bundle.js';
+
+const logEl = document.getElementById('log');
+const connectBtn = document.getElementById('connect');
+const flashBtn = document.getElementById('flash');
+
+let device = null;
+let transport = null;
+let esploader = null;
+
+function log(msg, cls='') {
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+connectBtn.onclick = async () => {
+  try {
+    if (!navigator.serial) {
+      log('Web Serial API не поддерживается. Используй Chrome или Edge.', 'err');
+      return;
+    }
+    log('Запрос порта...', 'info');
+    device = await navigator.serial.requestPort();
+    transport = new Transport(device, true);
+    esploader = new ESPLoader({
+      transport,
+      baudrate: 460800,
+      terminal: { clean: () => {}, writeLine: (d) => log(d) }
+    });
+    log('Подключение к ESP32...', 'info');
+    await esploader.main();
+    log('ESP32 подключён!', 'ok');
+    flashBtn.disabled = false;
+  } catch (e) {
+    log('Ошибка подключения: ' + e.message, 'err');
+  }
+};
+
+flashBtn.onclick = async () => {
+  try {
+    flashBtn.disabled = true;
+    log('Скачивание прошивки...', 'info');
+    const resp = await fetch('firmware/n3xus.bin');
+    if (!resp.ok) throw new Error('Не удалось скачать firmware/n3xus.bin');
+    const buf = await resp.arrayBuffer();
+    const bin = new Uint8Array(buf);
+    log('Прошивка загружена. Начинаю запись...', 'info');
+    await esploader.writeFlash({
+      fileArray: [{ data: bin, address: 0x1000 }],
+      flashSize: 'keep',
+      flashMode: 'keep',
+      flashFreq: 'keep',
+      eraseAll: false,
+      compress: true,
+      reportProgress: (fileIndex, written, total) => {
+        const pct = Math.floor((written / total) * 100);
+        log(`Запись: ${pct}%`);
+      }
+    });
+    log('Прошивка завершена! Перезагружаю...', 'ok');
+    await esploader.hardReset();
+    log('Готово! ESP32 перезагружен.', 'ok');
+  } catch (e) {
+    log('Ошибка прошивки: ' + e.message, 'err');
+  } finally {
+    flashBtn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>
